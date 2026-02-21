@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>For My Love</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Montserrat', sans-serif; }
+  #bgImg { 
+  position: absolute; 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  opacity: 0.5; /* Lowered from 0.6 to 0.4 to make it darker */
+  filter: brightness(60%); /* Adds an extra layer of darkness */
+  transition: transform 8s ease-in-out; 
+}
+
+
+  #page1 {
+    position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; background: radial-gradient(circle, #3a001e, #000); color: white; z-index: 10;
+  }
+  #startBtn {
+    padding: 15px 40px; font-size: 1.2rem; border: none; border-radius: 50px;
+    background: linear-gradient(45deg, #ff416c, #ff4b2b); color: white; cursor: pointer;
+    box-shadow: 0 0 15px rgba(255, 65, 108, 0.5); font-weight: bold; animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+  #page2 { position: absolute; width: 100%; height: 100%; display: none; overflow: hidden; }
+  #bgImg { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: transform 8s ease-in-out; }
+  #overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+  
+  canvas { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 2; }
+
+  #textWrapper {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; width: 90%; z-index: 5;
+  }
+  .story-text {
+    font-family: 'Dancing Script', cursive; font-size: 2.2rem; color: #fff;
+    text-shadow: 0 0 15px #ff4da6; opacity: 0; transition: opacity 1.5s ease-in-out; display: none;
+  }
+
+  #centerName { 
+    font-family: 'Dancing Script', cursive; font-size: 5rem; color: #fff; 
+    text-shadow: 0 0 15px #ff1a75, 0 0 30px #ff4da6; display: none; opacity: 0; transition: 2s; 
+  }
+
+  #typingArea { 
+    font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 1.8rem; color: #fff; 
+    margin-top: 15px; min-height: 50px; text-shadow: 0 0 15px #00d2ff, 0 0 25px #3a7bd5;
+  }
+
+  #finalNote {
+    position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 1.4rem; font-family: 'Montserrat', sans-serif;
+    text-align: center; width: 85%; z-index: 6; text-shadow: 0 0 15px #00d2ff, 0 0 25px #3a7bd5;
+  }
+
+  .rain { position: absolute; animation: fall linear infinite; top: -50px; z-index: 1; white-space: nowrap; }
+  @keyframes fall { 0% { transform: translateY(-10vh); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(110vh); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="page1">
+  <h1 style="font-family:'Dancing Script'; font-size: 3rem; text-align:center;">I Made Something For You</h1>
+  <button id="startBtn">Tap Here</button>
+</div>
+
+<div id="page2">
+  <img id="bgImg" src="image/wakia.jpeg">
+  <div id="overlay"></div>
+  <canvas id="fireworkCanvas"></canvas>
+  
+  <div id="textWrapper">
+    <div id="line1" class="story-text">In a world full of stars...</div>
+    <div id="line2" class="story-text">My eyes only look for you.</div>
+    <div id="line3" class="story-text">Because for me...</div>
+    <div id="centerName">Wakia</div>
+    <div id="typingArea"></div>
+  </div>
+  <div id="finalNote"></div>
+</div>
+
+<audio id="bgMusic" loop preload="auto"><source src="audio/love.mp3" type="audio/mpeg"></audio>
+
+<script>
+const canvas = document.getElementById("fireworkCanvas");
+const ctx = canvas.getContext("2d");
+const music = document.getElementById("bgMusic");
+const typingArea = document.getElementById("typingArea");
+const finalNote = document.getElementById("finalNote");
+const bgImg = document.getElementById("bgImg");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let particles = [];
+let currentRainInterval;
+let zoomTimer;
+
+function createExplosion(x, y, isHeart = false) {
+  const count = isHeart ? 120 : 500;
+  for(let i=0; i<count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = isHeart ? Math.random() * 4 + 2 : Math.random() * 15 + 5;
+    particles.push({
+      x, y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed,
+      alpha: 1, color: isHeart ? "#ff0040" : `hsl(${Math.random()*360}, 100%, 75%)`,
+      size: isHeart ? Math.random() * 12 + 8 : Math.random() * 3 + 1,
+      decay: isHeart ? 0.008 : 0.015, isHeart
+    });
+  }
+}
+
+function animate() {
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = 'lighter';
+  particles.forEach((p, i) => {
+    p.x += p.dx; p.y += p.dy; p.dy += 0.1; p.alpha -= p.decay;
+    ctx.globalAlpha = Math.max(0, p.alpha);
+    if(p.isHeart) {
+      ctx.font = `${p.size}px Arial`;
+      ctx.fillText("❤️", p.x, p.y);
+    } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fillStyle = p.color; ctx.fill();
+    }
+    if(p.alpha <= 0) particles.splice(i, 1);
+  });
+  requestAnimationFrame(animate);
+}
+
+async function typeLetters(text, element) {
+  element.innerHTML = "";
+  for (let i = 0; i < text.length; i++) {
+    element.innerHTML += text.charAt(i);
+    await new Promise(r => setTimeout(r, 120)); 
+  }
+}
+
+async function runStory() {
+  const lines = [document.getElementById("line1"), document.getElementById("line2"), document.getElementById("line3")];
+  for(let line of lines) {
+    line.style.display = "block";
+    await new Promise(r => setTimeout(r, 100));
+    line.style.opacity = 1;
+    await new Promise(r => setTimeout(r, 3000));
+    line.style.opacity = 0;
+    await new Promise(r => setTimeout(r, 1000));
+    line.style.display = "none";
+  }
+  createExplosion(canvas.width/2, canvas.height/2);
+  const name = document.getElementById("centerName");
+  name.style.display = "block";
+  setTimeout(() => name.style.opacity = 1, 100);
+  startRain('heart');
+  await new Promise(r => setTimeout(r, 1500));
+  await typeLetters("I love you...", typingArea);
+  await new Promise(r => setTimeout(r, 2500));
+  typingArea.style.opacity = 0;
+  await new Promise(r => setTimeout(r, 1000));
+  startRain('text'); 
+  typingArea.style.opacity = 1;
+  await typeLetters("You are my life", typingArea);
+  createExplosion(canvas.width/2, canvas.height/2, true);
+  setTimeout(() => {
+    clearInterval(currentRainInterval);
+    setTimeout(async () => {
+      await typeLetters("My heart is yours, only yours, today and always. ❤️", finalNote);
+      clearInterval(zoomTimer);
+      bgImg.style.transform = getComputedStyle(bgImg).transform; 
+      let fadeOut = setInterval(() => {
+        if (music.volume > 0.05) music.volume -= 0.05;
+        else { music.pause(); clearInterval(fadeOut); }
+      }, 500);
+    }, 6000); 
+  }, 12000); 
+}
+
+function startRain(type) {
+  if (currentRainInterval) clearInterval(currentRainInterval);
+  currentRainInterval = setInterval(() => {
+    const span = document.createElement("div");
+    span.className = "rain";
+    if (type === 'heart') {
+        span.innerHTML = Math.random() > 0.5 ? "❤️" : "💖";
+        span.style.fontSize = (Math.random()*15+15) + "px";
+    } else {
+        const phrases = ["I LOVE YOU 💖", "Forever Yours ❤️", "My Everything 💍", "Only You ✨", 
+  "You're My World 🌎", "Only You ✨", "Stay With Me","You're My Favorite Person 🌷", "Soulmate ✨"];
+        span.innerHTML = phrases[Math.floor(Math.random() * phrases.length)];
+        span.style.color = "#ffb3d9";
+        span.style.textShadow = "0 0 10px #ff1a75";
+        span.style.fontSize = (Math.random()*10+16) + "px";
+    }
+    span.style.left = Math.random() * 100 + "vw";
+    span.style.animationDuration = (Math.random() * 3 + 4) + "s";
+    document.getElementById("page2").appendChild(span);
+    setTimeout(() => span.remove(), 7000);
+  }, 350);
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        music.pause();
+    } else if (document.getElementById("page2").style.display === "block") {
+        music.play();
+    }
+});
+
+document.getElementById("startBtn").onclick = () => {
+  document.getElementById("page1").style.opacity = "0";
+  setTimeout(() => {
+    document.getElementById("page1").style.display = "none";
+    document.getElementById("page2").style.display = "block";
+    music.volume = 0.7; music.play();
+    animate();
+    runStory();
+    const toggleZoom = () => {
+      bgImg.style.transform = bgImg.style.transform === "scale(1.1)" ? "scale(1)" : "scale(1.1)";
+    };
+    toggleZoom();
+    zoomTimer = setInterval(toggleZoom, 8000);
+  }, 500);
+};
+</script>
+</body>
+</html>
